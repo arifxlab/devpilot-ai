@@ -4,9 +4,13 @@ from fastapi import FastAPI
 
 from app.config.logging import configure_logging, get_logger
 from app.config.settings import settings
+from app.models.schemas import AgentRequest, AgentResponse, HealthResponse
+from app.services.agent_service import AgentService
 
 configure_logging()
 logger = get_logger(__name__)
+
+agent_service = AgentService()
 
 
 @asynccontextmanager
@@ -39,10 +43,27 @@ async def root():
     }
 
 
-@app.get("/health", tags=["Health"])
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Health"],
+)
 async def health():
-    return {
-        "status": "healthy",
-        "application": settings.app_name,
-        "version": settings.app_version,
-    }
+    return HealthResponse(
+        status="healthy",
+        application=settings.app_name,
+        version=settings.app_version,
+    )
+
+
+@app.post(
+    "/agent/chat",
+    response_model=AgentResponse,
+    tags=["Agent"],
+)
+async def chat(request: AgentRequest):
+    """
+    Main AI Agent endpoint.
+    """
+
+    return await agent_service.process(request)

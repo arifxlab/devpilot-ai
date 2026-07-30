@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 class AgentEngine:
     """
-    Core AI agent responsible for orchestrating prompts,
+    Core AI agent responsible for coordinating prompts,
     memory, tools, and the language model provider.
     """
 
@@ -24,10 +24,6 @@ class AgentEngine:
         self.system_prompt = SYSTEM_PROMPT
 
     async def run(self, user_message: str) -> AgentResult:
-        """
-        Process a user request and return an agent result.
-        """
-
         start_time = perf_counter()
 
         conversation = [
@@ -42,15 +38,11 @@ class AgentEngine:
         ]
 
         logger.info(
-            "Processing request with %d messages using provider '%s'.",
-            len(conversation),
+            "Processing request using provider '%s'.",
             self.provider.name,
         )
 
-        answer = await self.provider.generate(
-            system_prompt=self.system_prompt,
-            user_prompt=user_message,
-        )
+        answer = await self._process_request(user_message)
 
         execution_time = perf_counter() - start_time
 
@@ -65,3 +57,41 @@ class AgentEngine:
             answer=answer,
             metadata=metadata,
         )
+
+    async def _process_request(self, message: str) -> str:
+        """
+        Route simple tool commands or fall back to the LLM provider.
+
+        Temporary command format:
+
+        tool:<tool_name> path=<path>
+        """
+
+        if message.startswith("tool:"):
+            return await self._execute_tool_command(message)
+
+        return await self.provider.generate(
+            system_prompt=self.system_prompt,
+            user_prompt=message,
+        )
+
+    async def _execute_tool_command(self, command: str) -> str:
+        parts = command.split()
+
+        tool_name = parts[0].replace("tool:", "")
+
+        arguments: dict[str, str] = {}
+
+        for token in parts[1:]:
+            if "=" in token:
+                key, value = token.split("=", 1)
+                arguments[key] = value
+
+        tool = self.tool_registry.get(tool_name)
+
+        if tool is None:
+            return f"Tool '{tool_name}' is not registered."
+
+        result = await tool.execute(**arguments)
+
+        return str(result)

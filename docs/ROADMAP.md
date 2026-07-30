@@ -1,180 +1,139 @@
-# DevPilot AI - Development Roadmap
+# DevPilot AI Roadmap
 
 ## Vision
 
-DevPilot AI aims to become a production-ready AI engineering assistant that helps software engineers understand, build, maintain, and improve software projects using retrieval, memory, and AI reasoning.
+DevPilot AI aims to become a production-grade AI software engineering assistant capable of understanding, analyzing, and assisting with complex software projects.
 
-The MVP focuses on solving one problem well: improving engineering productivity through project-aware assistance.
-
----
-
-# Phase 1 — Planning ✅
-
-## Objectives
-
-- Define project scope
-- Select technology stack
-- Design system architecture
-- Define evaluation criteria
-- Identify guardrails
-
-### Deliverables
-
-- Agent specification
-- Evaluation plan
-- Architecture documentation
-- Development roadmap
-
-Status: **Completed**
+The roadmap focuses on gradually increasing intelligence while maintaining reliability and safety.
 
 ---
 
-# Phase 2 — Project Setup
+# Phase 1 — Agent Foundation ✅
 
-## Objectives
+Status: Completed
 
-- Configure Python project
-- Configure virtual environment
-- Install dependencies
-- Configure formatting and linting
-- Prepare project structure
+Implemented:
 
-### Deliverables
-
-- Working development environment
-- Dependency management
-- Initial project configuration
-
----
-
-# Phase 3 — Core Agent
-
-## Objectives
-
-- Build the agent engine
-- Implement prompt management
-- Implement request routing
-- Generate structured responses
-
-### Deliverables
-
-- Functional agent workflow
-- Prompt templates
-- Response pipeline
-
----
-
-# Phase 4 — Tool Integration
-
-## Objectives
-
-- File search
-- File reading
-- Directory inspection
-- Git integration
-
-### Deliverables
-
+- FastAPI backend
+- Agent engine
+- Provider abstraction
+- Prompt system
+- Memory abstraction
 - Tool registry
-- File retrieval
-- Repository inspection
+
+Goal achieved:
+
+A modular foundation for building an extensible AI agent.
 
 ---
 
-# Phase 5 — Memory
+# Phase 2 — Project Understanding ✅
 
-## Objectives
+Status: Completed
 
-- SQLite storage
-- Embedding generation
-- Semantic retrieval
-- Context assembly
+Implemented:
 
-### Deliverables
+- Filesystem inspection
+- File reading
+- Directory tree generation
+- Tool execution pipeline
+- Automated tests
 
-- Long-term memory
-- Project knowledge retrieval
+Goal achieved:
 
----
-
-# Phase 6 — API & CLI
-
-## Objectives
-
-- FastAPI endpoints
-- CLI interface
-- Health checks
-- Streaming responses
-
-### Deliverables
-
-- Local API
-- Command-line interface
+The agent can inspect and understand a software project.
 
 ---
 
-# Phase 7 — Evaluation
+# Phase 3 — Real AI Integration
 
-## Objectives
+Status: Planned
 
-- Execute predefined evaluation cases
-- Measure retrieval quality
-- Validate guardrails
-- Fix identified issues
+Goals:
 
-### Deliverables
+- Connect production LLM providers
+- Add structured tool calling
+- Improve reasoning quality
+- Add streaming responses
 
-- Evaluation report
-- Improvements
-- Stable MVP
+Potential providers:
 
----
-
-# Phase 8 — Documentation
-
-## Objectives
-
-- Complete README
-- Installation guide
-- Usage examples
-- Architecture diagrams
-
-### Deliverables
-
-- Portfolio-ready documentation
+- OpenAI
+- Claude
+- Gemini
+- Ollama
 
 ---
 
-# Phase 9 — Future Enhancements
+# Phase 4 — Semantic Code Intelligence
 
-Potential future improvements include:
+Status: Planned
 
-- Multi-agent collaboration
-- IDE integrations
-- GitHub pull request reviews
-- Local LLM support (Ollama)
+Goals:
+
+- Code embeddings
+- Semantic search
+- Repository indexing
+- Similar code discovery
+
+Technologies:
+
+- FAISS
+- Qdrant
+- Sentence Transformers
+
+---
+
+# Phase 5 — Developer Workflow Integration
+
+Status: Planned
+
+Goals:
+
+- Git analysis
+- Pull request reviews
+- Commit summaries
+- Documentation generation
+
+Possible integrations:
+
+- GitHub API
+- MCP servers
+- CI/CD pipelines
+
+---
+
+# Phase 6 — Production Platform
+
+Status: Future
+
+Goals:
+
+- User authentication
+- Persistent databases
+- Multi-user support
+- Observability
+- Deployment automation
+
+Infrastructure:
+
+- Docker
+- PostgreSQL
+- Redis
 - Cloud deployment
-- Voice interface
-- Workflow automation
-- Team collaboration
-- Knowledge graph integration
 
 ---
 
-# Success Criteria
+# Long-Term Vision
 
-The MVP will be considered successful if it:
+DevPilot AI will evolve from a simple project assistant into an intelligent engineering platform capable of helping developers:
 
-- Answers engineering questions using project context.
-- Retrieves relevant files accurately.
-- Generates implementation plans.
-- Maintains project memory.
-- Passes at least five predefined evaluation cases.
-- Avoids hallucinating project information.
-- Can be extended without major architectural changes.
+- Understand large codebases
+- Review changes
+- Generate documentation
+- Debug problems
+- Improve software quality
 
----
+The core principle remains:
 
-# Long-Term Goal
-
-Transform DevPilot AI into a full-featured engineering assistant capable of supporting software development across planning, implementation, debugging, documentation, and code review while remaining modular, extensible, and production-ready.
+> Build reliable AI systems by combining models, tools, and engineering discipline.

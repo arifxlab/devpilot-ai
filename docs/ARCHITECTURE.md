@@ -1,179 +1,239 @@
-# DevPilot AI - System Architecture
+# DevPilot AI Architecture
 
 ## Overview
 
-DevPilot AI follows a modular architecture that separates the AI agent, tools, memory, services, and API into independent components. This structure makes the project maintainable, testable, and easy to extend with additional capabilities in the future.
+DevPilot AI is a modular AI agent system designed around three main principles:
 
-The MVP is designed as a local-first engineering assistant that can understand project context, retrieve information, and generate engineering guidance without modifying source code.
+1. Separation of responsibilities
+2. Extensible tools
+3. Replaceable AI providers
+
+The architecture allows new capabilities to be added without rewriting the core agent.
 
 ---
 
 # High-Level Architecture
 
-```
-                User
-                  │
-                  ▼
-        ┌──────────────────┐
-        │  CLI / FastAPI   │
-        └──────────────────┘
-                  │
-                  ▼
-        ┌──────────────────┐
-        │   Agent Engine   │
-        └──────────────────┘
-                  │
-        ┌─────────┼─────────┐
-        ▼         ▼         ▼
-     Memory     Tools    Prompt Manager
-        │         │
-        ▼         ▼
- SQLite / FAISS   File System
-                  Git Repository
-                  Documentation
-```
+            User
+             |
+             v
+      FastAPI Application
+             |
+             v
+      Agent Service Layer
+             |
+             v
+        Agent Engine
+             |
+  +----------+----------+
+  |                     |
+  v                     v
+
+Tool Registry AI Provider
+|
+|
++----+----------------+
+| | |
+v v v
+Filesystem Read File Directory Tree
+
 
 ---
 
-# Components
-
-## Agent Engine
-
-Responsibilities:
-
-- Receive user requests
-- Select the appropriate tools
-- Build prompts
-- Coordinate retrieval
-- Generate responses
-
-The Agent Engine is the central coordinator of the application.
-
----
-
-## Prompt Manager
-
-Responsibilities:
-
-- Store system prompts
-- Build user prompts
-- Maintain prompt templates
-- Standardize interactions with the LLM
-
----
-
-## Tool Layer
-
-Responsibilities:
-
-- File search
-- File reading
-- Git history lookup
-- Documentation lookup
-- Future integrations
-
-Each tool performs one specific task and returns structured results to the agent.
-
----
-
-## Memory Layer
-
-Responsibilities:
-
-- Store project knowledge
-- Store engineering decisions
-- Retrieve relevant context
-- Enable semantic search
-
-The MVP will use SQLite for structured storage and FAISS with Sentence Transformers for semantic retrieval.
-
----
-
-## Services Layer
-
-Responsibilities:
-
-- Business logic
-- Context assembly
-- Response generation
-- Retrieval orchestration
-
-Services isolate application logic from the agent and tools.
-
----
-
-## Models
-
-Responsibilities:
-
-- Pydantic schemas
-- Request models
-- Response models
-- Internal data structures
-
-Using typed models improves reliability and validation.
-
----
-
-## Configuration
-
-Responsibilities:
-
-- Environment variables
-- Model configuration
-- Application settings
-- Path management
-
----
+# Core Components
 
 ## API Layer
 
-Responsibilities:
+Location:
 
-- HTTP endpoints
-- Future frontend integration
-- Health checks
-- Agent request handling
 
-FastAPI is selected because it is lightweight, asynchronous, and production-ready.
+app/main.py
+app/api/
 
----
 
-# Data Flow
+Responsibility:
 
-1. User submits a request.
-2. Agent analyzes the request.
-3. Required tools are selected.
-4. Relevant project context is retrieved.
-5. Memory is searched.
-6. Prompt is constructed.
-7. LLM generates a response.
-8. Response is validated.
-9. Final answer is returned.
+- Receive user requests
+- Validate input
+- Return agent responses
+
+The API layer does not contain business logic.
 
 ---
 
-# Design Principles
+# Agent Engine
 
-- Modular architecture
-- Single responsibility
-- Local-first execution
-- Tool-based reasoning
-- Retrieval before generation
-- Typed data models
-- Safe-by-default behavior
+Location:
+
+
+app/agent/engine.py
+
+
+Responsibility:
+
+- Coordinate the agent workflow
+- Manage prompts
+- Decide whether to use tools or providers
+- Return structured responses
+
+The engine acts as the central orchestrator.
 
 ---
 
-# Future Extensions
+# Tool System
 
-The architecture supports future additions without major refactoring, including:
+Location:
 
-- Multi-agent collaboration
-- IDE plugins
-- GitHub integration
-- Local LLMs
-- Web search
+
+app/tools/
+
+
+The tool system follows a registry pattern.
+
+Each tool:
+
+- Has a unique name
+- Has a description
+- Implements execution logic
+- Returns structured output
+
+Current tools:
+
+## Filesystem Tool
+
+Provides:
+
+- Directory inspection
+- File discovery
+
+---
+
+## Read File Tool
+
+Provides:
+
+- Safe file reading
+- File metadata
+
+---
+
+## Directory Tree Tool
+
+Provides:
+
+- Project visualization
+- Structure understanding
+
+---
+
+# Tool Registry
+
+Location:
+
+
+app/tools/registry.py
+
+
+The registry provides dynamic tool management.
+
+Benefits:
+
+- Adding tools does not require engine changes.
+- Tools remain independent.
+- Future integrations are easier.
+
+Future tools:
+
+- Git analysis
+- Code search
 - Documentation generation
-- Code review automation
-- Workflow automation
+- Semantic retrieval
+
+---
+
+# Memory Layer
+
+Location:
+
+
+app/memory/
+
+
+The memory layer abstracts how the agent stores information.
+
+Current implementation:
+
+- In-memory storage
+
+Future implementations:
+
+- PostgreSQL
+- Redis
+- Vector databases
+
+---
+
+# Provider Abstraction
+
+Location:
+
+
+app/agent/provider.py
+
+
+The provider layer isolates the agent from a specific LLM.
+
+Possible providers:
+
+- OpenAI
+- Claude
+- Gemini
+- Ollama
+- Local models
+
+This allows changing models without changing application logic.
+
+---
+
+# Design Decisions
+
+## Why FastAPI?
+
+FastAPI provides:
+
+- Async support
+- Automatic documentation
+- Strong validation
+- Production-ready API development
+
+---
+
+## Why Tool Registry Pattern?
+
+Agents evolve over time.
+
+A registry allows adding capabilities without modifying existing orchestration logic.
+
+---
+
+## Why Read-Only Tools Initially?
+
+Safety.
+
+The first version focuses on understanding projects rather than modifying them.
+
+This reduces risk and makes evaluation easier.
+
+---
+
+# Current Limitations
+
+The current prototype does not include:
+
+- Persistent memory
+- Real LLM providers
+- Semantic retrieval
+- Authentication
+- Multi-user support
+
+These are planned improvements.

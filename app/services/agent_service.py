@@ -16,9 +16,13 @@ class AgentService:
         Process an agent request and return an API response.
         """
 
-        result = await self.engine.run(request.message)
+        result = await self.engine.run(
+            user_message=request.message,
+            session_id=request.session_id,
+        )
 
         return AgentResponse(
             answer=result.answer,
             success=True,
+            session_id=result.metadata.session_id,
         )

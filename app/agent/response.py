@@ -26,6 +26,11 @@ class AgentExecutionMetadata(BaseModel):
         description="Number of retrieved memory entries.",
     )
 
+    session_id: str = Field(
+        default="",
+        description="Conversation session identifier.",
+    )
+
 
 class AgentResult(BaseModel):
     """

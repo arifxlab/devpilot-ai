@@ -13,6 +13,11 @@ class AgentRequest(BaseModel):
         description="User message sent to the AI agent.",
     )
 
+    session_id: str | None = Field(
+        default=None,
+        description="Existing conversation session identifier.",
+    )
+
 
 class AgentResponse(BaseModel):
     """
@@ -27,6 +32,11 @@ class AgentResponse(BaseModel):
     success: bool = Field(
         default=True,
         description="Whether the request was processed successfully.",
+    )
+
+    session_id: str = Field(
+        ...,
+        description="Conversation session identifier.",
     )
 
 

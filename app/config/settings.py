@@ -17,7 +17,15 @@ class Settings(BaseSettings):
 
     embedding_model: str = Field(default="all-MiniLM-L6-v2")
 
+    llm_provider: str = Field(default="ollama")
+
+    ollama_host: str = Field(default="http://localhost:11434")
+    ollama_model: str = Field(default="llama3:latest")
+
     openai_api_key: str = Field(default="")
+    anthropic_api_key: str = Field(default="")
+    google_api_key: str = Field(default="")
+
     github_token: str = Field(default="")
 
     model_config = SettingsConfigDict(

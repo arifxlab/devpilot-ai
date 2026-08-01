@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -43,4 +44,5 @@ def get_settings() -> Settings:
     return Settings()
 
 
+Path("data").mkdir(exist_ok=True)
 settings = get_settings()

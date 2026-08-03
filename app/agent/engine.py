@@ -1,10 +1,12 @@
 from time import perf_counter
 
+from app.agent.context_builder import ContextBuilder
 from app.agent.response import AgentExecutionMetadata, AgentResult
 from app.agent.tool_router import ToolRouter
 from app.config.logging import get_logger
 from app.memory.manager import MemoryManager
 from app.prompts.system_prompt import SYSTEM_PROMPT
+from app.providers.base import ChatMessage
 from app.providers.factory import ProviderFactory
 from app.tools.registry import ToolRegistry
 
@@ -39,7 +41,9 @@ class AgentEngine:
         session = self.memory.get_or_create(session_id)
 
         if session.message_count == 0:
-            session.conversation.add_system(self.system_prompt)
+            session.conversation.add_system(
+                self.system_prompt,
+            )
 
         answer = await self._process_request(
             session=session,
@@ -67,32 +71,48 @@ class AgentEngine:
         message: str,
     ) -> str:
         """
-        Execute tools when appropriate,
-        otherwise forward the conversation
-        to the configured LLM.
+        Process a request using either a tool or the LLM.
+        Tool results are converted into context and explained
+        by the language model.
         """
 
         tool, arguments = self.tool_router.detect(message)
 
         if tool is not None:
-            result = await tool.execute(**arguments)
+            tool_result = await tool.execute(**arguments)
+
+            context = ContextBuilder.build(
+                user_request=message,
+                tool_name=tool.name,
+                tool_result=tool_result,
+            )
 
             session.conversation.add_user(message)
-            session.conversation.add_assistant(str(result))
 
-            return str(result)
+            response = await self.provider.chat(
+                session.conversation.history()
+                + [
+                    ChatMessage(
+                        role="user",
+                        content=context,
+                    )
+                ]
+            )
 
-        if message.startswith("tool:"):
-            return await self._execute_tool_command(message)
+            session.conversation.add_assistant(
+                response.content,
+            )
+
+            return response.content
 
         session.conversation.add_user(message)
 
         response = await self.provider.chat(
-            session.conversation.history()
+            session.conversation.history(),
         )
 
         session.conversation.add_assistant(
-            response.content
+            response.content,
         )
 
         return response.content
@@ -101,9 +121,17 @@ class AgentEngine:
         self,
         command: str,
     ) -> str:
+        """
+        Execute a tool directly using the legacy
+        tool:<name> syntax.
+        """
+
         parts = command.split()
 
-        tool_name = parts[0].replace("tool:", "")
+        tool_name = parts[0].replace(
+            "tool:",
+            "",
+        )
 
         arguments: dict[str, str] = {}
 

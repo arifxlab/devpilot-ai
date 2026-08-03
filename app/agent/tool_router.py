@@ -3,8 +3,8 @@ from app.tools.registry import ToolRegistry
 
 class ToolRouter:
     """
-    Very small router that decides whether
-    a request should execute a tool.
+    Routes natural language requests
+    to the appropriate tool.
     """
 
     def __init__(self) -> None:
@@ -13,9 +13,27 @@ class ToolRouter:
     def detect(self, message: str):
         lower = message.lower()
 
+        # ----------------------------------
+        # Project Scan Tool
+        # ----------------------------------
+        if (
+            ("scan" in lower and "project" in lower)
+            or ("analyze" in lower and "project" in lower)
+            or ("scan" in lower and "codebase" in lower)
+            or ("analyze" in lower and "codebase" in lower)
+            or ("project overview" in lower)
+            or ("project summary" in lower)
+        ):
+            return self.registry.get("project_scan"), {
+                "path": ".",
+            }
+
+        # ----------------------------------
+        # File Listing Tool
+        # ----------------------------------
         if any(
-            word in lower
-            for word in (
+            keyword in lower
+            for keyword in (
                 "list files",
                 "show files",
                 "project files",
@@ -28,17 +46,28 @@ class ToolRouter:
                 "recursive": "false",
             }
 
-        if "tree" in lower:
+        # ----------------------------------
+        # Directory Tree Tool
+        # ----------------------------------
+        if (
+            "tree" in lower
+            or "directory tree" in lower
+            or "folder tree" in lower
+        ):
             return self.registry.get("directory_tree"), {
                 "path": ".",
             }
 
+        # ----------------------------------
+        # Read File Tool
+        # ----------------------------------
         if any(
             keyword in lower
             for keyword in (
                 "read",
                 "open",
                 "show file",
+                "display file",
                 ".py",
                 ".md",
                 ".txt",
@@ -60,7 +89,7 @@ class ToolRouter:
         """
 
         for word in message.split():
-            cleaned = word.strip("\"'")
+            cleaned = word.strip("\"'(),")
 
             if (
                 "." in cleaned

@@ -5,6 +5,7 @@ from app.tools.directory_tree import DirectoryTreeTool
 from app.tools.filesystem import FileSystemTool
 from app.tools.read_file import ReadFileTool
 from app.tools.project_scan import ProjectScanTool
+from app.tools.python_analyzer import PythonAnalyzerTool
 
 class ToolRegistry:
     """
@@ -24,6 +25,7 @@ class ToolRegistry:
         self.register(ReadFileTool())
         self.register(DirectoryTreeTool())
         self.register(ProjectScanTool())
+        self.register(PythonAnalyzerTool())
 
     def register(self, tool: BaseTool) -> None:
         """

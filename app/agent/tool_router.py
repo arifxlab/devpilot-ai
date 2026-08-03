@@ -3,19 +3,35 @@ from app.tools.registry import ToolRegistry
 
 class ToolRouter:
     """
-    Routes natural language requests
-    to the appropriate tool.
+    Detects every tool required for a user request.
+
+    Multiple tools may be executed for a
+    single prompt.
     """
 
     def __init__(self) -> None:
         self.registry = ToolRegistry()
 
     def detect(self, message: str):
+        tools = self.detect_all(message)
+
+        if tools:
+            return tools[0]
+
+        return None, None
+
+    def detect_all(
+        self,
+        message: str,
+    ):
         lower = message.lower()
 
-        # ----------------------------------
-        # Project Scan Tool
-        # ----------------------------------
+        detected = []
+
+        # -----------------------------
+        # Project Scan
+        # -----------------------------
+
         if (
             ("scan" in lower and "project" in lower)
             or ("analyze" in lower and "project" in lower)
@@ -24,13 +40,19 @@ class ToolRouter:
             or ("project overview" in lower)
             or ("project summary" in lower)
         ):
-            return self.registry.get("project_scan"), {
-                "path": ".",
-            }
+            detected.append(
+                (
+                    self.registry.get("project_scan"),
+                    {
+                        "path": ".",
+                    },
+                )
+            )
 
-        # ----------------------------------
-        # File Listing Tool
-        # ----------------------------------
+        # -----------------------------
+        # File List
+        # -----------------------------
+
         if any(
             keyword in lower
             for keyword in (
@@ -41,26 +63,38 @@ class ToolRouter:
                 "folder",
             )
         ):
-            return self.registry.get("filesystem"), {
-                "path": ".",
-                "recursive": "false",
-            }
+            detected.append(
+                (
+                    self.registry.get("filesystem"),
+                    {
+                        "path": ".",
+                        "recursive": "false",
+                    },
+                )
+            )
 
-        # ----------------------------------
-        # Directory Tree Tool
-        # ----------------------------------
+        # -----------------------------
+        # Tree
+        # -----------------------------
+
         if (
             "tree" in lower
             or "directory tree" in lower
             or "folder tree" in lower
         ):
-            return self.registry.get("directory_tree"), {
-                "path": ".",
-            }
+            detected.append(
+                (
+                    self.registry.get("directory_tree"),
+                    {
+                        "path": ".",
+                    },
+                )
+            )
 
-        # ----------------------------------
-        # Read File Tool
-        # ----------------------------------
+        # -----------------------------
+        # Read File
+        # -----------------------------
+
         if any(
             keyword in lower
             for keyword in (
@@ -77,24 +111,34 @@ class ToolRouter:
                 ".yml",
             )
         ):
-            return self.registry.get("read_file"), {
-                "path": self._extract_path(message),
-            }
+            detected.append(
+                (
+                    self.registry.get("read_file"),
+                    {
+                        "path": self._extract_path(message),
+                    },
+                )
+            )
 
-        return None, None
+        return [
+            (tool, args)
+            for tool, args in detected
+            if tool is not None
+        ]
 
-    def _extract_path(self, message: str) -> str:
-        """
-        Extract a likely file path from the prompt.
-        """
-
+    def _extract_path(
+        self,
+        message: str,
+    ) -> str:
         for word in message.split():
             cleaned = word.strip("\"'(),")
 
             if (
                 "." in cleaned
-                or "/" in cleaned
-                or "\\" in cleaned
+                or "/"
+                in cleaned
+                or "\\"
+                in cleaned
             ):
                 return cleaned
 

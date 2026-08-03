@@ -9,6 +9,10 @@ from app.prompts.system_prompt import SYSTEM_PROMPT
 from app.providers.base import ChatMessage
 from app.providers.factory import ProviderFactory
 from app.tools.registry import ToolRegistry
+from app.agent.tools.multi_tool_executor import MultiToolExecutor
+from app.agent.multi_context_builder import MultiContextBuilder
+from app.tools.multi_tool_executor import MultiToolExecutor
+from app.providers.base import ChatMessage
 
 logger = get_logger(__name__)
 
@@ -23,8 +27,9 @@ class AgentEngine:
         self.provider = ProviderFactory.create()
         self.memory = MemoryManager()
         self.tool_registry = ToolRegistry()
-        self.tool_router = ToolRouter()
+        self.tool_executor = MultiToolExecutor()
         self.system_prompt = SYSTEM_PROMPT
+        self.multi_tool_executor = MultiToolExecutor()
 
     async def run(
         self,
@@ -71,20 +76,40 @@ class AgentEngine:
         message: str,
     ) -> str:
         """
-        Process a request using either a tool or the LLM.
-        Tool results are converted into context and explained
-        by the language model.
+        Process a request using either one tool,
+        multiple tools, or the LLM.
         """
 
-        tool, arguments = self.tool_router.detect(message)
+        lower = message.lower()
 
-        if tool is not None:
-            tool_result = await tool.execute(**arguments)
+        # ----------------------------------------
+        # Multi-tool project understanding
+        # ----------------------------------------
+
+        if any(
+            phrase in lower
+            for phrase in (
+                "project architecture",
+                "project structure",
+                "backend architecture",
+                "summarize project",
+                "explain this project",
+                "how is this project organized",
+                "project overview",
+            )
+        ):
+            tool_results = await self.multi_tool_executor.execute(
+                [
+                    ("project_scan", {"path": "."}),
+                    ("directory_tree", {"path": "."}),
+                    ("read_file", {"path": "README.md"}),
+                ]
+            )
 
             context = ContextBuilder.build(
                 user_request=message,
-                tool_name=tool.name,
-                tool_result=tool_result,
+                tool_name="multi_tool",
+                tool_result=tool_results,
             )
 
             session.conversation.add_user(message)
@@ -99,21 +124,47 @@ class AgentEngine:
                 ]
             )
 
-            session.conversation.add_assistant(
-                response.content,
-            )
+            session.conversation.add_assistant(response.content)
 
             return response.content
 
+        # ----------------------------------------
+        # Single Tool
+        # ----------------------------------------
+
+        tool_results = await self.tool_executor.execute(message)
+
+        if tool_results:
+            context = MultiContextBuilder.build(
+                user_request=message,
+                tool_results=tool_results,
+            )
+
+            session.conversation.add_user(message)
+
+            response = await self.provider.chat(
+                session.conversation.history()
+                + [
+                    ChatMessage(
+                        role="user",
+                        content=context,
+                    )
+                ]
+            )
+
+            session.conversation.add_assistant(response.content)
+
+            return response.content
+
+        # ----------------------------------------
+        # Normal Chat
+        # ----------------------------------------
+
         session.conversation.add_user(message)
 
-        response = await self.provider.chat(
-            session.conversation.history(),
-        )
+        response = await self.provider.chat(session.conversation.history())
 
-        session.conversation.add_assistant(
-            response.content,
-        )
+        session.conversation.add_assistant(response.content)
 
         return response.content
 

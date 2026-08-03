@@ -1,10 +1,10 @@
 from time import perf_counter
 
 from app.agent.response import AgentExecutionMetadata, AgentResult
+from app.agent.tool_router import ToolRouter
 from app.config.logging import get_logger
 from app.memory.manager import MemoryManager
 from app.prompts.system_prompt import SYSTEM_PROMPT
-from app.providers.base import ChatMessage
 from app.providers.factory import ProviderFactory
 from app.tools.registry import ToolRegistry
 
@@ -21,6 +21,7 @@ class AgentEngine:
         self.provider = ProviderFactory.create()
         self.memory = MemoryManager()
         self.tool_registry = ToolRegistry()
+        self.tool_router = ToolRouter()
         self.system_prompt = SYSTEM_PROMPT
 
     async def run(
@@ -66,9 +67,20 @@ class AgentEngine:
         message: str,
     ) -> str:
         """
-        Execute tool commands or forward the complete
-        conversation history to the LLM.
+        Execute tools when appropriate,
+        otherwise forward the conversation
+        to the configured LLM.
         """
+
+        tool, arguments = self.tool_router.detect(message)
+
+        if tool is not None:
+            result = await tool.execute(**arguments)
+
+            session.conversation.add_user(message)
+            session.conversation.add_assistant(str(result))
+
+            return str(result)
 
         if message.startswith("tool:"):
             return await self._execute_tool_command(message)

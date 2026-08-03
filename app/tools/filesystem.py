@@ -6,7 +6,7 @@ from app.tools.base import BaseTool
 
 class FileSystemTool(BaseTool):
     """
-    Tool for inspecting directories.
+    Lists files and folders from the local filesystem.
     """
 
     @property
@@ -15,10 +15,13 @@ class FileSystemTool(BaseTool):
 
     @property
     def description(self) -> str:
-        return "List files and directories."
+        return "Browse directories and inspect project files."
 
     async def execute(self, **kwargs: Any) -> dict[str, Any]:
-        path = Path(kwargs.get("path", "."))
+        path = Path(kwargs.get("path", ".")).expanduser()
+
+        recursive = str(kwargs.get("recursive", "false")).lower() == "true"
+        max_items = int(kwargs.get("max_items", 200))
 
         if not path.exists():
             return {
@@ -32,18 +35,25 @@ class FileSystemTool(BaseTool):
                 "error": f"Not a directory: {path}",
             }
 
-        directories: list[str] = []
-        files: list[str] = []
+        items: list[dict[str, str]] = []
 
-        for item in sorted(path.iterdir()):
-            if item.is_dir():
-                directories.append(item.name)
-            else:
-                files.append(item.name)
+        iterator = path.rglob("*") if recursive else path.iterdir()
+
+        for index, item in enumerate(iterator):
+            if index >= max_items:
+                break
+
+            items.append(
+                {
+                    "name": item.name,
+                    "path": str(item.resolve()),
+                    "type": "directory" if item.is_dir() else "file",
+                }
+            )
 
         return {
             "success": True,
-            "path": str(path.resolve()),
-            "directories": directories,
-            "files": files,
+            "root": str(path.resolve()),
+            "count": len(items),
+            "items": items,
         }

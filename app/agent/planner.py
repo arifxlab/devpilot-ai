@@ -3,113 +3,108 @@ from app.tools.registry import ToolRegistry
 
 class AgentPlanner:
     """
-    Decides which tools should be executed
-    for a user request.
+    Responsible for deciding which tools should
+    execute before the AI generates a response.
 
-    For now the planner is rule-based.
+    This is currently a rule-based planner.
 
-    Later it will become LLM-powered.
+    Later it will be replaced with an LLM planner
+    capable of reasoning about tool usage.
     """
 
     def __init__(self) -> None:
         self.registry = ToolRegistry()
 
-    def plan(
-        self,
-        message: str,
-    ):
+    def plan(self, message: str):
+        """
+        Build an execution plan consisting of one
+        or more tools required to answer the request.
+        """
+
         lower = message.lower()
 
-        plan = []
+        plan: list[tuple] = []
+        used_tools: set[str] = set()
 
-        # ----------------------------
+        def add_tool(name: str, arguments: dict):
+            """
+            Register a tool only once.
+            """
+
+            if name in used_tools:
+                return
+
+            tool = self.registry.get(name)
+
+            if tool is None:
+                return
+
+            used_tools.add(name)
+            plan.append((tool, arguments))
+
+        # --------------------------------------------------
         # Project Scan
-        # ----------------------------
+        # --------------------------------------------------
 
         if (
             ("scan" in lower and "project" in lower)
             or ("analyze" in lower and "project" in lower)
-            or ("codebase" in lower)
+            or ("scan" in lower and "codebase" in lower)
+            or ("analyze" in lower and "codebase" in lower)
+            or ("project overview" in lower)
+            or ("project summary" in lower)
+            or ("inspect project" in lower)
         ):
-            tool = self.registry.get("project_scan")
+            add_tool(
+                "project_scan",
+                {
+                    "path": ".",
+                },
+            )
 
-            if tool:
-                plan.append(
-                    (
-                        tool,
-                        {
-                            "path": ".",
-                        },
-                    )
-                )
-
-        # ----------------------------
+        # --------------------------------------------------
         # Directory Tree
-        # ----------------------------
+        # --------------------------------------------------
 
         if (
             "tree" in lower
             or "directory tree" in lower
+            or "folder tree" in lower
         ):
-            tool = self.registry.get(
-                "directory_tree"
+            add_tool(
+                "directory_tree",
+                {
+                    "path": ".",
+                },
             )
 
-            if tool:
-                plan.append(
-                    (
-                        tool,
-                        {
-                            "path": ".",
-                        },
-                    )
-                )
-
-        # ----------------------------
-        # File List
-        # ----------------------------
+        # --------------------------------------------------
+        # File Listing
+        # --------------------------------------------------
 
         if any(
-            word in lower
-            for word in (
+            keyword in lower
+            for keyword in (
                 "list files",
                 "show files",
                 "project files",
-                "folder",
                 "directory",
+                "folder",
             )
         ):
-            tool = self.registry.get(
-                "filesystem"
+            add_tool(
+                "filesystem",
+                {
+                    "path": ".",
+                    "recursive": "false",
+                },
             )
 
-            if tool:
-                plan.append(
-                    (
-                        tool,
-                        {
-                            "path": ".",
-                            "recursive": "false",
-                        },
-                    )
-                )
-
-        # ----------------------------
+        # --------------------------------------------------
         # Read File
-        # ----------------------------
-
-        extensions = (
-            ".py",
-            ".md",
-            ".txt",
-            ".json",
-            ".toml",
-            ".yaml",
-            ".yml",
-        )
+        # --------------------------------------------------
 
         for word in message.split():
-
             cleaned = word.strip("\"'(),")
 
             if (
@@ -117,20 +112,27 @@ class AgentPlanner:
                 or "/" in cleaned
                 or "\\" in cleaned
             ):
-                tool = self.registry.get(
-                    "read_file"
+                add_tool(
+                    "read_file",
+                    {
+                        "path": cleaned,
+                    },
                 )
-
-                if tool:
-                    plan.append(
-                        (
-                            tool,
-                            {
-                                "path": cleaned,
-                            },
-                        )
-                    )
-
                 break
+
+        # --------------------------------------------------
+        # Default README
+        # --------------------------------------------------
+
+        if (
+            "readme" in lower
+            and "read_file" not in used_tools
+        ):
+            add_tool(
+                "read_file",
+                {
+                    "path": "README.md",
+                },
+            )
 
         return plan

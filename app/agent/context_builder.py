@@ -3,84 +3,81 @@ from typing import Any
 
 class ContextBuilder:
     """
-    Builds structured context for the language model
-    from either a single tool or multiple tool executions.
+    Builds structured context for the language model.
+
+    Supports:
+    - No tool execution
+    - Single tool execution
+    - Multiple tool execution
+
+    This class is the single source responsible for converting
+    raw tool outputs into LLM-ready context.
     """
 
     @staticmethod
     def build(
         user_request: str,
-        tool_name: str,
-        tool_result: Any,
+        tool_results: list[dict[str, Any]] | None = None,
     ) -> str:
-        # ----------------------------------------
-        # Multiple tool results
-        # ----------------------------------------
-        if isinstance(tool_result, list):
-            sections: list[str] = []
+        sections: list[str] = []
 
-            for item in tool_result:
-                tool = item.get("tool", "unknown")
-                result = item.get("result", item)
+        sections.append("=" * 80)
+        sections.append("USER REQUEST")
+        sections.append("=" * 80)
+        sections.append(user_request)
+        sections.append("")
 
-                sections.append(
-                    f"""
-==================================================
-Tool: {tool}
+        sections.append("=" * 80)
+        sections.append("TOOL RESULTS")
+        sections.append("=" * 80)
 
-Result:
-{result}
-==================================================
+        if not tool_results:
+            sections.append("No tools were executed.")
+        else:
+            for index, item in enumerate(tool_results, start=1):
+                tool_name = item.get("tool", "unknown")
+                arguments = item.get("arguments", {})
+                result = item.get("result", {})
+
+                sections.append(f"[{index}] TOOL")
+                sections.append(f"Name: {tool_name}")
+                sections.append(f"Arguments: {arguments}")
+                sections.append("Result:")
+                sections.append(str(result))
+                sections.append("-" * 80)
+
+        sections.append("")
+        sections.append("=" * 80)
+        sections.append("INSTRUCTIONS")
+        sections.append("=" * 80)
+        sections.append(
+            """
+You are DevPilot AI, a software engineering assistant.
+
+Rules:
+
+1. Use ONLY the information contained in the tool results.
+
+2. If multiple tools were executed, combine their findings into a
+single coherent answer.
+
+3. Never invent:
+   - files
+   - folders
+   - code
+   - project architecture
+   - technologies
+
+4. If information is missing,
+say exactly what is missing.
+
+5. Prefer concise technical explanations.
+
+6. If a tool returned an error,
+explain the error instead of guessing.
+
+7. Answer like a senior backend engineer performing a code review.
 """.strip()
-                )
+        )
 
-            tools_output = "\n\n".join(sections)
-
-            return f"""
-You are an expert software engineering assistant.
-
-The user asked:
-
-{user_request}
-
-The following information was collected from MULTIPLE project tools.
-
-{tools_output}
-
-Instructions:
-
-- Use information from ALL tool results.
-- Combine the information into one coherent explanation.
-- Do not focus on only one tool.
-- If multiple tools agree, combine their findings.
-- If information is missing, clearly say so.
-- Never invent project details.
-- Answer like a senior software engineer reviewing the project.
-"""
-
-        # ----------------------------------------
-        # Single tool result
-        # ----------------------------------------
-        return f"""
-You are an expert software engineering assistant.
-
-The user asked:
-
-{user_request}
-
-Tool Used:
-
-{tool_name}
-
-Tool Result:
-
-{tool_result}
-
-Instructions:
-
-- Use ONLY this tool result.
-- Explain it naturally.
-- Do not invent information.
-- If the tool failed, explain why.
-- Answer clearly and professionally.
-"""
+        return "\n".join(sections)
